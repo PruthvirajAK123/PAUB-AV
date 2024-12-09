@@ -1,0 +1,2 @@
+- setup-file:
+    local-name: /home/jetson/PAUB/AV/devel/setup.sh
