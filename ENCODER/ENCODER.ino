@@ -1,3 +1,6 @@
+#include <ros.h>
+#include <std_msgs/Int32.h>
+
 // Motor 1 encoder pins
 const byte motor1PinA = 2;  // Interrupt for Motor 1 Pin A
 const byte motor1PinB = 3;  // Motor 1 Pin B
@@ -10,27 +13,45 @@ const byte motor2PinB = 21; // Motor 2 Pin B
 volatile long motor1Count = 0; // Motor 1 count
 volatile long motor2Count = 0; // Motor 2 count
 
+// ROS Node Handle
+ros::NodeHandle nh;
+
+// ROS Messages for motor ticks
+std_msgs::Int32 motor1Ticks;
+std_msgs::Int32 motor2Ticks;
+
+// ROS Publishers
+ros::Publisher motor1_pub("motor1_ticks", &motor1Ticks);
+ros::Publisher motor2_pub("motor2_ticks", &motor2Ticks);
+
 void setup() {
-  Serial.begin(9600);
+  // Initialize Serial for ROS communication
+  nh.initNode();
+  nh.advertise(motor1_pub);
+  nh.advertise(motor2_pub);
 
   // Setup Motor 1 encoder pins
   pinMode(motor1PinA, INPUT_PULLUP);
   pinMode(motor1PinB, INPUT_PULLUP);
-  attachInterrupt(digitalPinToInterrupt(motor1PinB), motor1ISR, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(motor1PinA), motor1ISR, CHANGE);
 
   // Setup Motor 2 encoder pins
   pinMode(motor2PinA, INPUT_PULLUP);
   pinMode(motor2PinB, INPUT_PULLUP);
-  attachInterrupt(digitalPinToInterrupt(motor2PinB), motor2ISR, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(motor2PinA), motor2ISR, CHANGE);
 }
 
 void loop() {
-  // Display encoder counts
-  Serial.print("Motor 1 Count: ");
-  Serial.println(motor1Count);
-  Serial.print("Motor 2 Count: ");
-  Serial.println(motor2Count);
-  delay(500); // Update every 500ms
+  // Publish motor ticks to ROS topics
+  motor1Ticks.data = motor1Count;
+  motor2Ticks.data = motor2Count;
+
+  motor1_pub.publish(&motor1Ticks);
+  motor2_pub.publish(&motor2Ticks);
+
+  // Spin the ROS node
+  nh.spinOnce();
+  delay(100); // Adjust publishing rate as needed
 }
 
 // Interrupt Service Routine for Motor 1
